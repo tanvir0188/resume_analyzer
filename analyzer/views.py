@@ -1,0 +1,78 @@
+from ast import Mult
+from numpy import extract
+import rest_framework
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
+
+from sklearn.metrics.pairwise import cosine_similarity
+from .models import Resume
+from .serializers import ResumeSerializer, RegisterSerializer
+from django.shortcuts import render
+from .utils import extract_text, nlp
+from sentence_transformers import SentenceTransformer
+ 
+# Create your views here.
+
+class RegisterView(APIView):
+  permission_classes = [AllowAny]
+  def post(self, request):
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response({"message": "User created successfully"}, status=201)
+    return Response(serializer.errors, status=400)
+
+class ResumeUploadView(APIView):
+  permission_classes = [IsAuthenticated]
+  parser_classes = [MultiPartParser, FormParser]
+
+  def post(self, request):
+    file_obj = request.FILES.get('file')
+    if not file_obj:
+      return Response({'error': 'No file provided'}, status=400)
+    resume = Resume.objects.create(user=request.user, file = file_obj)
+    return Response({
+      'message': 'Resume uploaded successfully',
+      'resume_id': resume.id
+      },status=201)
+
+sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+class MatchResumeView(APIView):
+  permission_classes = [IsAuthenticated]
+  
+  def post(self, request):
+    resume_id = request.data.get('resume_id')
+    jd_text = request.data.get('job_description', '')
+    try:
+      resume = Resume.objects.get(id=resume_id, user=request.user)
+    except Resume.DoesNotExist:
+      return Response({'error': 'Resume not found'}, status=404)
+    # Extract resume text
+    resume_info = extract_text(resume.file.path)
+    resume_text = resume_info['raw_text']
+    resume_skills = set(map(str.lower, resume_info['skills']))
+
+    doc = nlp(jd_text)
+    jd_skills = set(
+      chunk.text.lower() for chunk in doc.noun_chunks if chunk.root.dep_ == "pobj"
+    )
+    
+    matched_skills = list(resume_skills & jd_skills)
+    missing_skills = list(jd_skills - resume_skills)
+    # Compute similarity
+    resume_emb = sbert_model.encode(resume_text)
+    jd_emb = sbert_model.encode(jd_text)
+    score = float(cosine_similarity([resume_emb], [jd_emb])[0][0]) * 100
+    # (Optional) Extract and compare skills here...
+    return Response({
+      'compatibility_score': round(score, 2),
+      'matched_skills': matched_skills,
+      'missing_skills': missing_skills,
+      'recommendations': (
+        "Include relevant skills from job description to improve match."
+        if score < 90 else "Strong match! Resume is well-aligned."
+      )
+    })
