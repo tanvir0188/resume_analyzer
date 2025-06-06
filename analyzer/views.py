@@ -76,3 +76,7 @@ class MatchResumeView(APIView):
         if score < 90 else "Strong match! Resume is well-aligned."
       )
     })
+
+
+def upload_resume_view(request):
+  return render (request, 'index.html')
