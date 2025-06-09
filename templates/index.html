@@ -121,54 +121,141 @@
 </style>
 <script class="jsbin" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 <div class="file-upload">
-  <button class="file-upload-btn" type="button" onclick="$('.file-upload-input').trigger( 'click' )">Add Resume</button>
+  <button class="file-upload-btn" type="button" onclick="$('.file-upload-input').trigger('click')">Add Resume</button>
 
   <div class="image-upload-wrap">
-    <input class="file-upload-input" type='file' onchange="readURL(this);" accept="image/*" />
+    <input class="file-upload-input" id="resumeFile" type="file" accept=".pdf,.doc,.docx" onchange="readURL(this)" />
     <div class="drag-text">
-      <h3>Drag and drop your CV(pdf or doc file) or select Add resume</h3>
+      <h3>Drag and drop your CV (pdf, doc, or docx) or click Add Resume</h3>
     </div>
   </div>
+
   <div class="file-upload-content">
-    <img class="file-upload-image" src="#" alt="your image" />
+    <img class="file-upload-image" src="#" alt="Resume preview" />
     <div class="image-title-wrap">
-      <button type="button" onclick="removeUpload()" class="remove-image">Remove <span class="image-title">Uploaded
-          Image</span></button>
+      <button type="button" onclick="removeUpload()" class="remove-image">
+        Remove <span class="image-title">Uploaded File</span>
+      </button>
     </div>
+
+    <!-- ✅ New Upload button -->
+    <button type="button" class="upload-resume-btn" onclick="uploadSelectedFile()">Upload Resume</button>
   </div>
 </div>
+
 <script>
-  function readURL(input) {
-    if (input.files && input.files[0]) {
+  const token = localStorage.getItem('refresh_token');
+  if (!token) {
+    window.location.href = 'http://127.0.0.1:8000/view/login-register';
+  }
+  function uploadSelectedFile() {
+    const fileInput = document.getElementById('resumeFile');
+    const file = fileInput.files[0];
 
-      var reader = new FileReader();
-
-      reader.onload = function (e) {
-        $('.image-upload-wrap').hide();
-
-        $('.file-upload-image').attr('src', e.target.result);
-        $('.file-upload-content').show();
-
-        $('.image-title').html(input.files[0].name);
-      };
-
-      reader.readAsDataURL(input.files[0]);
-
-    } else {
-      removeUpload();
+    if (!file) {
+      alert("Please select a file before uploading.");
+      return;
     }
+
+    uploadFile(file);
+  }
+
+
+  function readURL(input) {
+    const file = input.files[0];
+    const allowedExtensions = ['pdf', 'doc', 'docx'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert('Only PDF, DOC, or DOCX files are allowed.');
+      removeUpload();
+      return;
+    }
+
+    $('.image-upload-wrap').hide();
+    $('.file-upload-image').attr('src', 'https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg'); // Optional: static icon
+    $('.file-upload-content').show();
+    $('.image-title').html(file.name);
   }
 
   function removeUpload() {
-    $('.file-upload-input').replaceWith($('.file-upload-input').clone());
+    $('.file-upload-input').replaceWith($('.file-upload-input').clone(true));
     $('.file-upload-content').hide();
     $('.image-upload-wrap').show();
   }
-  $('.image-upload-wrap').bind('dragover', function () {
+
+  let accessToken = null;
+  function getNewAccessToken(callback) {
+    const refresh = localStorage.getItem('refresh_token');
+
+    if (!refresh) {
+      alert('No refresh token found. Please log in again.');
+      return;
+    }
+
+    $.ajax({
+      url: 'http://127.0.0.1:8000/api/token/refresh/',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ refresh }),
+      success: function (res) {
+        accessToken = res.access; // update the global token
+        callback(); // retry the original action
+      },
+      error: function () {
+        alert('Session expired. Please log in again.');
+        window.location.href = '/view/login-register';
+      }
+    });
+  }
+  function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    function doUpload() {
+      $.ajax({
+        url: 'http://127.0.0.1:8000/api/resume/upload/',
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + accessToken
+        },
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          alert(response.message + ' (ID: ' + response.resume_id + ')');
+          //redirect to the same page 
+          window.location.href = window.location.href;
+        },
+        error: function (xhr) {
+          if (xhr.status === 401) {
+            console.log('Token expired. Trying to refresh...');
+            getNewAccessToken(doUpload); // refresh and retry
+          } else {
+            let message = 'Upload failed';
+            if (xhr.responseJSON) {
+              message = Object.values(xhr.responseJSON).flat().join(', ');
+            }
+            alert('Error: ' + message);
+            removeUpload();
+          }
+        }
+      });
+    }
+
+    doUpload();
+  }
+
+  $('.image-upload-wrap').on('dragover', function () {
     $('.image-upload-wrap').addClass('image-dropping');
   });
-  $('.image-upload-wrap').bind('dragleave', function () {
+
+  $('.image-upload-wrap').on('dragleave', function () {
     $('.image-upload-wrap').removeClass('image-dropping');
+  });
+
+  $('#resumeFile').on('change', function () {
+    readURL(this);
   });
 </script>
 {% endblock content %}

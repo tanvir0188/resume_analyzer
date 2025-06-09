@@ -12,6 +12,7 @@ from .serializers import ResumeSerializer, RegisterSerializer
 from django.shortcuts import render
 from .utils import extract_text, nlp
 from sentence_transformers import SentenceTransformer
+import os
  
 # Create your views here.
 
@@ -27,11 +28,24 @@ class RegisterView(APIView):
 class ResumeUploadView(APIView):
   permission_classes = [IsAuthenticated]
   parser_classes = [MultiPartParser, FormParser]
+  ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc']
+  ALLOWED_CONTENT_TYPES = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]
+
 
   def post(self, request):
     file_obj = request.FILES.get('file')
     if not file_obj:
       return Response({'error': 'No file provided'}, status=400)
+    ext = os.path.splitext(file_obj.name)[1].lower()
+    if ext not in self.ALLOWED_EXTENSIONS:
+      return Response({'error': 'Only Pdf or Word documents are allowed'}, status=400)
+    if file_obj.content_type not in self.ALLOWED_CONTENT_TYPES:
+      return Response({'error': f'Invalid file type: {file_obj.content_type}'}, status=400)
+    
     resume = Resume.objects.create(user=request.user, file = file_obj)
     return Response({
       'message': 'Resume uploaded successfully',
@@ -78,5 +92,15 @@ class MatchResumeView(APIView):
     })
 
 
-def upload_resume_view(request):
-  return render (request, 'index.html')
+
+class UserView(APIView):
+  permission_class = [IsAuthenticated]
+  
+  def get(self, request):
+    user = request.user
+    return Response({
+      'id': user.id,
+      'username': user.username,
+      'email': user.email,
+      'is_staff': user.is_staff,
+    })

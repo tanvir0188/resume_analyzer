@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login & Register</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #f5f5f5;
+        padding: 30px;
+      }
+      .container {
+        max-width: 400px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+      }
+      input {
+        width: 100%;
+        padding: 10px 0px 10px 0px;
+        margin: 10px 0;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #1fb264;
+        color: white;
+        border: none;
+      }
+      .error,
+      .success {
+        color: red;
+        margin-top: 10px;
+      }
+      .success {
+        color: green;
+      }
+      .switch {
+        text-align: center;
+        margin-top: 15px;
+        cursor: pointer;
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="register-form" style="display: none">
+        <h2>Register</h2>
+        <form>
+          <input
+            type="text"
+            id="reg-username"
+            placeholder="Username"
+            required
+          />
+          <input type="email" id="reg-email" placeholder="Email" required />
+          <input
+            type="password"
+            id="reg-password"
+            placeholder="Password"
+            required
+          />
+          <button onclick="register()">Register</button>
+        </form>
+
+        <div class="error" id="reg-error"></div>
+        <div class="success" id="reg-success"></div>
+        <div class="switch" onclick="showLogin()">
+          Already have an account? Login
+        </div>
+      </div>
+
+      <div id="login-form">
+        <h2>Login</h2>
+        <form onsubmit="event.preventDefault(); login();">
+          <input
+            type="text"
+            id="login-username"
+            placeholder="Username"
+            required
+          />
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Password"
+            required
+          />
+          <button onclick="login()">Login</button>
+        </form>
+        <div class="error" id="login-error"></div>
+        <div class="switch" onclick="showRegister()">
+          Don't have an account? Register
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const token = localStorage.getItem('refresh_token')
+      if(token){
+        window.location.href='http://127.0.0.1:8000/view'
+      }
+      function showRegister() {
+        $("#login-form").hide();
+        $("#register-form").show();
+        $("#login-error, #reg-error, #reg-success").text("");
+      }
+
+      function showLogin() {
+        $("#register-form").hide();
+        $("#login-form").show();
+        $("#login-error, #reg-error, #reg-success").text("");
+      }
+
+      function register() {
+        $.ajax({
+          url: "http://127.0.0.1:8000/api/register/",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+            username: $("#reg-username").val(),
+            email: $("#reg-email").val(),
+            password: $("#reg-password").val(),
+          }),
+          success: function (res) {
+            $("#reg-success").text(res.message);
+            $("#reg-error").text("");
+            showLogin();
+          },
+          error: function (xhr) {
+            let error = "Registration failed";
+            if (xhr.responseJSON) {
+              error = Object.values(xhr.responseJSON).join(", ");
+            }
+            $("#reg-error").text(error);
+          },
+        });
+      }
+
+      function login() {
+        console.log("Attempting to log in...");
+
+        $.ajax({
+          url: "http://127.0.0.1:8000/api/token/",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+            username: $("#login-username").val(),
+            password: $("#login-password").val(),
+          }),          
+          success: function (res) {
+            console.log("Login successful");
+            console.log("Access token:", res.access);
+            console.log("Refresh token:", res.refresh);
+
+            sessionStorage.setItem("access_token", res.access);
+            localStorage.setItem("refresh_token", res.refresh);
+            window.location.href = "http://127.0.0.1:8000/view"; // fixed here
+          },
+
+          error: function (xhr) {
+            const errorMsg = xhr.responseJSON?.detail || "Invalid credentials";
+            console.error("Login failed:", errorMsg);
+            $("#login-error").text("Login failed: " + errorMsg);
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
