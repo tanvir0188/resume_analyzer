@@ -128,12 +128,13 @@
   }
   function deleteResume(id) {
     $.ajax({
-      url: `http://127.0.0.1:8000/api/resume-list/${id}/`,
+      url: `http://127.0.0.1:8000/api/resume-list/${id}`,
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + accessToken,
       },
-      success: function () {
+      success: function (response) {
+        alert(response.message);
         fetchResumes(); // Refresh table
       },
       error: function () {

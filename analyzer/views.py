@@ -1,6 +1,3 @@
-from ast import Mult
-from numpy import extract
-import rest_framework
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -32,10 +29,10 @@ class ResumeUploadView(APIView):
   parser_classes = [MultiPartParser, FormParser]
   ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc']
   ALLOWED_CONTENT_TYPES = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ]
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
 
 
   def post(self, request):
@@ -102,11 +99,15 @@ class ResumeListView(APIView):
     return Response(serializer.data)
   def delete(self, request, pk):
     try:
-      resume = Resume.objects.get(pk = pk, user = request.user)
+      resume = Resume.objects.get(pk = pk, user = request.user)   
+      if resume.file and resume.file.name:
+        resume.file.delete(save=False)   
       resume.delete()
+      
       return Response({
         'message': 'Resume deleted successfully',        
       }, status=200)
+    
     except Resume.DoesNotExist:
       return Response({'error': 'Resume not found'}, status=404)
     

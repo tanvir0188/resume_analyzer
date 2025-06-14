@@ -43,8 +43,8 @@ extract the following information from the resume:
 7. english_proficiency_level: ""
 8. experiences: [{"employer_name":"", role:"",  duration:""}]
 
-Give the extracted info in JSON format only.
-Note: if the info is not present, leave the field blank. If the given text doesn't represent a CV or resume, then return an pdf message in json format only.
+Give the extracted info in JSON format only. When you are extracting the skills, make sure to add the alternative spellings of the skills. for example, if rest api is there, add rest api, restful api, restful apis, rest apis, rest api's etc.
+Also, make sure the extract the skills from the introduction as well as the experiences section of the resume.
 message: The extracted text doesn't represent a CV or resume.
 """
 
@@ -62,6 +62,7 @@ def extract_resume_info(text: str):
     )
 
     response_text = response.text
+    print( response_text )
 
     # Extract valid JSON from the text
     start = response_text.find("{")
@@ -97,6 +98,8 @@ def extract_jd_skills(text: str):
       contents=prompt
     )
     response_text = response.text
+    print( response_text)
+
     json_str = response_text[response_text.find("{"):response_text.rfind("}") + 1]
     data = json.loads(json_str)
     return data.get("skills", [])
