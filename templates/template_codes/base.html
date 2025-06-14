@@ -64,7 +64,7 @@
         if (!refreshToken) return;
 
         $.ajax({
-          url: "http://127.0.0.1:8000/api/token/refresh/",
+          url: "/api/token/refresh/",
           method: "POST",
           contentType: "application/json",
           data: JSON.stringify({ refresh: refreshToken }),
@@ -86,7 +86,7 @@
         }
 
         $.ajax({
-          url: "http://127.0.0.1:8000/api/user-info/",
+          url: "/api/user-info/",
           method: "GET",
           headers: {
             Authorization: "Bearer " + accessToken

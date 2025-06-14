@@ -99,7 +99,7 @@
     <script>
       const token = localStorage.getItem('refresh_token')
       if(token){
-        window.location.href='http://127.0.0.1:8000/view'
+        window.location.href='/view'
       }
       function showRegister() {
         $("#login-form").hide();
@@ -115,7 +115,7 @@
 
       function register() {
         $.ajax({
-          url: "http://127.0.0.1:8000/api/register/",
+          url: "/api/register/",
           method: "POST",
           contentType: "application/json",
           data: JSON.stringify({
@@ -142,7 +142,7 @@
         console.log("Attempting to log in...");
 
         $.ajax({
-          url: "http://127.0.0.1:8000/api/token/",
+          url: "/api/token/",
           method: "POST",
           contentType: "application/json",
           data: JSON.stringify({
@@ -156,7 +156,7 @@
 
             sessionStorage.setItem("access_token", res.access);
             localStorage.setItem("refresh_token", res.refresh);
-            window.location.href = "http://127.0.0.1:8000/view";
+            window.location.href = "/view";
           },
 
           error: function (xhr) {

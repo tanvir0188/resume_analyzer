@@ -24,7 +24,7 @@ GEMINI_API_KEY = config("GEMINI_API_KEY")
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rhl*tfj!5aj_-sq!hk#d#exj_=o(p1^7nd&q$x@8ox*br*sg*i'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -50,7 +50,7 @@ INSTALLED_APPS = [
 
 SIMPLE_JWT = {
   'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-  'REFRESH_TOKEN_LIFETIME': timedelta(None),
+  'REFRESH_TOKEN_LIFETIME': timedelta(days=365 * 100),
 }
 
 REST_FRAMEWORK = {

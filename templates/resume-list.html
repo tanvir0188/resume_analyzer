@@ -68,13 +68,13 @@
 <script>
   const token = localStorage.getItem("refresh_token");
   if (!token) {
-    window.location.href = "http://127.0.0.1:8000/view/login-register";
+    window.location.href = "/view/login-register";
   }
   let accessToken = null;
 
   function refreshAccessToken(callback) {
     $.ajax({
-      url: "http://127.0.0.1:8000/api/token/refresh/",
+      url: "/api/token/refresh/",
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify({ refresh: token }),
@@ -83,13 +83,13 @@
         callback();
       },
       error: function () {
-        window.location.href = "http://127.0.0.1:8000/view/login-register";
+        window.location.href = "/view/login-register";
       },
     });
   }
   function fetchResumes() {
     $.ajax({
-      url: "http://127.0.0.1:8000/api/resume-list/",
+      url: "/api/resume-list/",
       method: "GET",
       headers: {
         Authorization: "Bearer " + accessToken,
@@ -128,7 +128,7 @@
   }
   function deleteResume(id) {
     $.ajax({
-      url: `http://127.0.0.1:8000/api/resume-list/${id}`,
+      url: `/api/resume-list/${id}`,
       method: "DELETE",
       headers: {
         Authorization: "Bearer " + accessToken,
@@ -190,7 +190,7 @@
 
     // Refresh token
     $.ajax({
-      url: "http://127.0.0.1:8000/api/token/refresh/",
+      url: "/api/token/refresh/",
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify({ refresh: refreshToken }),
@@ -199,7 +199,7 @@
 
         // Make match API call
         $.ajax({
-          url: "http://127.0.0.1:8000/api/resume/match/",
+          url: "/api/resume/match/",
           method: "POST",
           contentType: "application/json",
           headers: {

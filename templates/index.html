@@ -146,7 +146,7 @@
 <script>
   const token = localStorage.getItem('refresh_token');
   if (!token) {
-    window.location.href = 'http://127.0.0.1:8000/view/login-register';
+    window.location.href = '/view/login-register';
   }
   function uploadSelectedFile() {
     const fileInput = document.getElementById('resumeFile');
@@ -194,7 +194,7 @@
     }
 
     $.ajax({
-      url: 'http://127.0.0.1:8000/api/token/refresh/',
+      url: '/api/token/refresh/',
       method: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({ refresh }),
@@ -215,7 +215,7 @@
 
     function doUpload() {
       $.ajax({
-        url: 'http://127.0.0.1:8000/api/resume/upload/',
+        url: '/api/resume/upload/',
         method: 'POST',
         headers: {
           Authorization: 'Bearer ' + accessToken
