@@ -20,6 +20,7 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   </head>
 
   <body>
@@ -36,15 +37,13 @@
               <!-- <li class="nav-item">
                 <a class="nav-link active" aria-current="page" href="#">Home</a>
               </li> -->
-              
+
             </ul>
-            <span class="navbar-text">
-              
-              
+            <span class="navbar-text" id="navbar-user-info">
+              <!-- Populated dynamically -->
               <a href="{% url 'login-register' %}" class="nav-item">Login</a>
-              
-                
             </span>
+
           </div>
         </div>
       </nav>
@@ -54,7 +53,81 @@
       {% endblock content %}
 
     </div>
-    <script src="" async defer></script>
+
+    
+    <script>
+
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      // Helper: Refresh the access token using refresh token
+      function refreshAccessToken(callback) {
+        if (!refreshToken) return;
+
+        $.ajax({
+          url: "http://127.0.0.1:8000/api/token/refresh/",
+          method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ refresh: refreshToken }),
+          success: function (res) {
+            accessToken = res.access;            
+            callback();
+          },
+          error: function () {
+            window.location.href = "{% url 'login-register' %}";
+          }
+        });
+      }
+
+      // Get user info and update navbar
+      function fetchUserInfo() {
+        if (!accessToken) {
+          refreshAccessToken(fetchUserInfo);
+          return;
+        }
+
+        $.ajax({
+          url: "http://127.0.0.1:8000/api/user-info/",
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + accessToken
+          },
+          success: function (data) {
+            $("#navbar-user-info").html(`
+          Welcome, <strong>${data.username}</strong> |
+          <a href="/view/uploaded-resumes" class="nav-item">Uploaded Resumes</a> |
+          <a href="/view/" class="nav-item">Upload new resume</a> |
+          <a href="#" class="nav-item" onclick="logout()">Logout</a> 
+          
+        `);
+          },
+          error: function (xhr) {
+            if (xhr.status === 401) {
+              refreshAccessToken(fetchUserInfo);
+            } else {
+              console.error("User fetch failed");
+            }
+          }
+        });
+      }
+
+      // Logout function
+      function logout() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "{% url 'login-register' %}";
+      }
+
+      // Run on page load
+      $(document).ready(function () {
+        fetchUserInfo();
+      });
+      
+    </script>
+    
+
+
+
+
   </body>
 
 </html>

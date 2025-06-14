@@ -10,9 +10,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from .models import Resume
 from .serializers import ResumeSerializer, RegisterSerializer
 from django.shortcuts import render
-from .utils import extract_text, nlp
+from .utils import extract_text, extract_resume_info, extract_jd_skills
 from sentence_transformers import SentenceTransformer
 import os
+
+from analyzer import serializers
  
 # Create your views here.
 
@@ -65,14 +67,15 @@ class MatchResumeView(APIView):
     except Resume.DoesNotExist:
       return Response({'error': 'Resume not found'}, status=404)
     # Extract resume text
-    resume_info = extract_text(resume.file.path)
-    resume_text = resume_info['raw_text']
-    resume_skills = set(map(str.lower, resume_info['skills']))
+    resume_text = extract_text(resume.file.path)
+    resume_info = extract_resume_info(resume_text)
+    if 'message' in resume_info:
+      return Response({'error': resume_info['message']}, status=400)
+    
+    resume_skills = set(map(str.lower, resume_info.get('skills', [])))
 
-    doc = nlp(jd_text)
-    jd_skills = set(
-      chunk.text.lower() for chunk in doc.noun_chunks if chunk.root.dep_ == "pobj"
-    )
+    jd_skills = set(map(str.lower, extract_jd_skills(jd_text)))
+
     
     matched_skills = list(resume_skills & jd_skills)
     missing_skills = list(jd_skills - resume_skills)
@@ -91,6 +94,22 @@ class MatchResumeView(APIView):
       )
     })
 
+class ResumeListView(APIView):
+  permission_classes = [IsAuthenticated]
+
+  def get(self, request):
+    serializer = ResumeSerializer(Resume.objects.filter(user=request.user), many=True)
+    return Response(serializer.data)
+  def delete(self, request, pk):
+    try:
+      resume = Resume.objects.get(pk = pk, user = request.user)
+      resume.delete()
+      return Response({
+        'message': 'Resume deleted successfully',        
+      }, status=200)
+    except Resume.DoesNotExist:
+      return Response({'error': 'Resume not found'}, status=404)
+    
 
 
 class UserView(APIView):

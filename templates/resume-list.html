@@ -1,0 +1,248 @@
+{% extends 'template_codes/base.html' %} {% block content %}
+<h1>Resume list</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">File name</th>
+      <th scope="col">Created at</th>
+      <th scope="col">Action</th>
+    </tr>
+  </thead>
+  <tbody id="resume-list"></tbody>
+</table>
+
+<div class="container my-5">
+  <div class="card mb-4 d-none" id="jd-form-card">
+    <div class="card-header">
+      Job Description Matcher for <strong id="selected-resume-name"></strong>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label for="jd-input" class="form-label">Paste Job Description</label>
+        <textarea
+          class="form-control"
+          id="jd-input"
+          rows="6"
+          placeholder="Paste job description here..."
+        ></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="startMatching()">
+        Match Resume
+      </button>
+    </div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="card d-none" id="resume-score">
+    <div class="card-header">
+      Resume Compatibility Score for <strong id="resume-score-name"></strong>
+    </div>
+    <div class="card-body">
+      <div id="score-loading" class="text-center d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Matching resume, please wait...</p>
+      </div>
+      <div id="score-result" class="d-none">
+        <h3 class="text-success mb-3">
+          Score: <span id="score-value">--%</span>
+        </h3>
+        <div class="mb-3">
+          <h5>Matched Skills</h5>
+          <ul id="matched-skills" class="list-group list-group-flush"></ul>
+        </div>
+        <div class="mb-3">
+          <h5>Missing Skills</h5>
+          <ul id="missing-skills" class="list-group list-group-flush"></ul>
+        </div>
+        <div class="mb-3">
+          <h5>Recommendation</h5>
+          <p id="recommendation" class="mb-0"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem("refresh_token");
+  if (!token) {
+    window.location.href = "http://127.0.0.1:8000/view/login-register";
+  }
+  let accessToken = null;
+
+  function refreshAccessToken(callback) {
+    $.ajax({
+      url: "http://127.0.0.1:8000/api/token/refresh/",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ refresh: token }),
+      success: function (res) {
+        accessToken = res.access;
+        callback();
+      },
+      error: function () {
+        window.location.href = "http://127.0.0.1:8000/view/login-register";
+      },
+    });
+  }
+  function fetchResumes() {
+    $.ajax({
+      url: "http://127.0.0.1:8000/api/resume-list/",
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+      },
+      success: function (data) {
+        const tableBody = $("#resume-list");
+        tableBody.empty();
+
+        data.forEach((resume, index) => {
+          const fileUrl = window.location.origin + resume.file;
+          const fileName = resume.file.split("/").pop();
+          const uploadedDate = new Date(resume.uploaded_at).toLocaleString();
+
+          const row = `
+            <tr>
+              <th scope="row">${index + 1}</th>
+              <td><a href="${fileUrl}" target="_blank">${fileName}</a></td>
+              <td>${uploadedDate}</td>
+              <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteResume(${
+                  resume.id
+                })">Delete</button>
+                <button class="btn btn-warning btn-sm" onclick="showJDForm(${
+                  resume.id
+                }, '${fileName}')">Score</button>
+              </td>
+            </tr>
+          `;
+          tableBody.append(row);
+        });
+      },
+      error: function () {
+        alert("Failed to load resumes.");
+      },
+    });
+  }
+  function deleteResume(id) {
+    $.ajax({
+      url: `http://127.0.0.1:8000/api/resume-list/${id}/`,
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+      },
+      success: function () {
+        fetchResumes(); // Refresh table
+      },
+      error: function () {
+        alert("Failed to delete resume.");
+      },
+    });
+  }
+  $(document).ready(function () {
+    refreshAccessToken(fetchResumes);
+  });
+</script>
+<script>
+  let selectedResumeId = null;
+  let selectedResumeName = "";
+
+  function showJDForm(resumeId, fileName) {
+    selectedResumeId = resumeId;
+    selectedResumeName = fileName;
+
+    $("#selected-resume-name").text(fileName);
+    $("#resume-score-name").text(fileName);
+
+    $("#jd-input").val(""); // Optional: Clear textarea
+    $("#jd-form-card").removeClass("d-none");
+  }
+
+  function startMatching() {
+
+    const jdText = $("#jd-input").val().trim();
+
+    if (!jdText || !selectedResumeId) {
+      alert("Paste a job description and select a resume.");
+      return;
+    }
+
+    matchResume(selectedResumeId, jdText);
+  }
+
+  function matchResume(resumeId, jobDescription) {
+    console.log('Api called')
+    const refreshToken = localStorage.getItem("refresh_token");
+    let accessToken = null;
+
+    if (!refreshToken) {
+      window.location.href = "/view/login-register";
+      return;
+    }
+
+    // Reset UI
+    $("#score-result").removeClass("d-none");
+    $("#score-loading").removeClass("d-none");
+    $("#resume-score").removeClass("d-none");
+
+    // Refresh token
+    $.ajax({
+      url: "http://127.0.0.1:8000/api/token/refresh/",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ refresh: refreshToken }),
+      success: function (res) {
+        accessToken = res.access;
+
+        // Make match API call
+        $.ajax({
+          url: "http://127.0.0.1:8000/api/resume/match/",
+          method: "POST",
+          contentType: "application/json",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+          },
+          data: JSON.stringify({
+            resume_id: resumeId,
+            job_description: jobDescription,
+          }),
+          success: function (data) {
+            $("#score-value").text(data.compatibility_score + "%");
+
+            const matchedSkills = data.matched_skills
+              .map((skill) => `<li class="list-group-item">${skill}</li>`)
+              .join("");
+            const missingSkills = data.missing_skills
+              .map((skill) => `<li class="list-group-item">${skill}</li>`)
+              .join("");
+
+            $("#matched-skills").html(
+              matchedSkills ||
+                '<li class="list-group-item text-muted">None</li>'
+            );
+            $("#missing-skills").html(
+              missingSkills ||
+                '<li class="list-group-item text-muted">None</li>'
+            );
+            $("#recommendation").text(data.recommendations);
+
+            $("#score-loading").addClass("d-none");
+            $("#score-result").removeClass("d-none");
+          },
+          error: function () {
+            $("#score-loading").addClass("d-none");
+            alert("Failed to match resume.");
+          },
+        });
+      },
+      error: function () {
+        $("#score-loading").addClass("d-none");
+        window.location.href = "/view/login-register";
+      },
+    });
+  }
+</script>
+
+{% endblock content %}
