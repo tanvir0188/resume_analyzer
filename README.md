@@ -11,7 +11,6 @@ Javascript, HTML, CSS, Python(Django), Django REST framework Bootstrap 5
 
 
 # Admin Panel
-### Dashboard
 
 ![App Screenshot](https://github.com/tanvir0188/resume_analyzer/blob/main/demo/1.png?raw=true)
 
@@ -20,6 +19,10 @@ Javascript, HTML, CSS, Python(Django), Django REST framework Bootstrap 5
 ![App Screenshot](https://github.com/tanvir0188/resume_analyzer/blob/main/demo/3.png?raw=true)
 
 # User panel
+### Login and register view
+![App Screenshot](https://github.com/tanvir0188/resume_analyzer/blob/main/demo/4.png?raw=true)
+![App Screenshot](https://github.com/tanvir0188/resume_analyzer/blob/main/demo/5.png?raw=true)
+### Demonstration
 ![App Screenshot](https://github.com/tanvir0188/resume_analyzer/blob/main/demo/full-demo.gif?raw=true)
 
 
